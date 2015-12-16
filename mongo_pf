@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+## GENERATED FILE - DO NOT EDIT
+
+import urllib2
+import sys
+import os
+import pymongo
+
+def getServerStatus():
+    if 'MONGO_DB_URI' in os.environ:
+      c = pymongo.MongoClient(os.environ['MONGO_DB_URI'])
+    else:
+      c = pymongo.MongoClient()
+
+    return c.admin.command('serverStatus', workingSet=True)
+
+name = "page_faults"
+
+
+def doData():
+    prev_file = "/tmp/pf"
+    pf = getServerStatus()["extra_info"]["page_faults"]
+    if os.path.exists(prev_file) and os.stat(prev_file).st_size != 0:
+        fh = open(prev_file,'rw+')
+        prev_pf = fh.read()
+        diff = int(pf) - int(prev_pf)
+        fh.seek(0)
+        fh.write(str(pf))
+        fh.close()
+        print name + ".value " + str( diff )
+    else:
+        fh = open(prev_file,'w+')
+        fh.write(str(pf))
+        fh.close()
+        os.chmod(prev_file,438)
+        print name + ".value " + str( 0 )
+
+
+def doConfig():
+
+    print "graph_title MongoDB Page Faults"
+    print "graph_args --base 1000 -l 0"
+    print "graph_vlabel page_faults / ${graph_period}"
+    print "graph_category MongoDB"
+
+    print name + ".label " + name
+
+
+
+
+
+
+if __name__ == "__main__":
+
+    from os import environ
+    if 'HOST' in environ:
+        host = environ['HOST']
+    if 'PORT' in environ:
+        port = environ['PORT']
+    if 'USER' in environ:
+        user = environ['USER']
+ if 'PASSWORD' in environ:
+        password = environ['PASSWORD']
+
+if len(sys.argv) > 1 and sys.argv[1] == "config":
+   doConfig()
+else:
+   doData()
